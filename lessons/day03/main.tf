@@ -13,11 +13,11 @@ provider "aws" {
 }
 
 # Create a S3 bucket
-resource "aws_s3_bucket" "tf_test_baivab_bucket" {
-  bucket = "my-tf-test-baiv-bucket"
+resource "aws_s3_bucket" "demo_first_bucket" {
+  bucket = "terraform-yashchavan-123"
 
   tags = {
-    Name        = "My bucket"
+    Name        = "First bucket"
     Environment = "Dev"
   }
 }
