@@ -272,9 +272,3 @@ resource "aws_instance" "web_server" {
 ```
 
 ---
-
-## Summary
-
-- **Primitive types**: `string`, `number`, `boolean`.
-- **Non-primitive types**: `list`, `set`, `map`, `tuple`, `object`.
-- Non-primitive types allow for more complex data structures and flexibility when defining infrastructure resources.
