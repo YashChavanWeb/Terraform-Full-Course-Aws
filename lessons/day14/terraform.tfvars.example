@@ -1,0 +1,18 @@
+# Example terraform.tfvars file
+# Copy this to terraform.tfvars and update with your values
+
+# S3 bucket name (must be globally unique)
+bucket_name = "yashchavanweb12123"
+
+# Domain configuration
+# Set create_route53_record to true if you have a domain and want to use Route 53
+create_route53_record = false
+
+# If you have a domain, uncomment and set these values:
+# domain_name = "example.com"
+# route53_zone_id = "Z1234567890ABC"  # Your Route 53 hosted zone ID
+
+# To find your Route 53 hosted zone ID:
+# 1. Go to AWS Console > Route 53 > Hosted Zones
+# 2. Click on your domain
+# 3. Copy the "Hosted zone ID" value

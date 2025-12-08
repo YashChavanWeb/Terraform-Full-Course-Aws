@@ -1,0 +1,6 @@
+# all terraform not push files
+terraform.tfstate
+terraform.tfstate.backup
+*.tfplan
+*.tfplan.*
+.terraform/
