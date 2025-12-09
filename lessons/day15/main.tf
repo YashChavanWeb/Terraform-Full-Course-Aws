@@ -1,6 +1,3 @@
-# VPC Peering Demo
-# This demo creates two VPCs in different regions and establishes peering between them
-
 # Primary VPC in us-east-1
 resource "aws_vpc" "primary_vpc" {
   provider             = aws.primary
@@ -23,9 +20,7 @@ resource "aws_vpc" "secondary_vpc" {
   enable_dns_support   = true
 
   tags = {
-    Name        = "Secondary-VPC-${var.secondary_region}"
-    Environment = "Demo"
-    Purpose     = "VPC-Peering-Demo"
+    Name = "Secondary-VPC-${var.secondary_region}"
   }
 }
 
@@ -38,8 +33,7 @@ resource "aws_subnet" "primary_subnet" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name        = "Primary-Subnet-${var.primary_region}"
-    Environment = "Demo"
+    Name = "Primary-Subnet-${var.primary_region}"
   }
 }
 
@@ -52,8 +46,7 @@ resource "aws_subnet" "secondary_subnet" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name        = "Secondary-Subnet-${var.secondary_region}"
-    Environment = "Demo"
+    Name = "Secondary-Subnet-${var.secondary_region}"
   }
 }
 
@@ -63,8 +56,7 @@ resource "aws_internet_gateway" "primary_igw" {
   vpc_id   = aws_vpc.primary_vpc.id
 
   tags = {
-    Name        = "Primary-IGW"
-    Environment = "Demo"
+    Name = "Primary-IGW"
   }
 }
 
@@ -74,8 +66,7 @@ resource "aws_internet_gateway" "secondary_igw" {
   vpc_id   = aws_vpc.secondary_vpc.id
 
   tags = {
-    Name        = "Secondary-IGW"
-    Environment = "Demo"
+    Name = "Secondary-IGW"
   }
 }
 
@@ -90,8 +81,7 @@ resource "aws_route_table" "primary_rt" {
   }
 
   tags = {
-    Name        = "Primary-Route-Table"
-    Environment = "Demo"
+    Name = "Primary-Route-Table"
   }
 }
 
@@ -106,8 +96,7 @@ resource "aws_route_table" "secondary_rt" {
   }
 
   tags = {
-    Name        = "Secondary-Route-Table"
-    Environment = "Demo"
+    Name = "Secondary-Route-Table"
   }
 }
 
@@ -135,7 +124,6 @@ resource "aws_vpc_peering_connection" "primary_to_secondary" {
 
   tags = {
     Name        = "Primary-to-Secondary-Peering"
-    Environment = "Demo"
     Side        = "Requester"
   }
 }
@@ -147,9 +135,8 @@ resource "aws_vpc_peering_connection_accepter" "secondary_accepter" {
   auto_accept               = true
 
   tags = {
-    Name        = "Secondary-Peering-Accepter"
-    Environment = "Demo"
-    Side        = "Accepter"
+    Name = "Secondary-Peering-Accepter"
+    Side = "Accepter"
   }
 }
 
@@ -262,7 +249,7 @@ resource "aws_security_group" "secondary_sg" {
     Environment = "Demo"
   }
 }
-
+ 
 # EC2 Instance in Primary VPC
 resource "aws_instance" "primary_instance" {
   provider               = aws.primary

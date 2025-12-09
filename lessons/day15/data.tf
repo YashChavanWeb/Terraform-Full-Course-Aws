@@ -1,5 +1,3 @@
-# Data Sources for VPC Peering Demo
-
 # Data source to get available AZs in Primary region
 data "aws_availability_zones" "primary" {
   provider = aws.primary

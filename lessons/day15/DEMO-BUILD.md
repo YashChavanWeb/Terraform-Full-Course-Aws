@@ -7,19 +7,23 @@ This is a comprehensive, step-by-step guide to build, deploy, and test the VPC P
 **Before you begin**, understand that PEM key files MUST be properly secured or SSH will fail!
 
 **For Windows users:**
+
 - ❌ `chmod 400` does NOT work (it's a Linux command)
 - ✅ Use `icacls` commands to set Windows ACL permissions
 - See [Step 4.1](#step-41-secure-your-pem-key-files-critical) for detailed instructions
 
 **For Linux/Ubuntu/Mac users:**
+
 - ✅ Use `chmod 400` to restrict permissions
 - See [Step 4.1](#step-41-secure-your-pem-key-files-critical) for detailed instructions
 
 **Common SSH username:**
+
 - ❌ NOT `ec2-user` for Ubuntu
 - ✅ Use `ubuntu` as the SSH username
 
 ## Table of Contents
+
 1. [Prerequisites Setup](#prerequisites-setup)
 2. [Infrastructure Deployment](#infrastructure-deployment)
 3. [Verification Steps](#verification-steps)
@@ -32,6 +36,7 @@ This is a comprehensive, step-by-step guide to build, deploy, and test the VPC P
 ## Prerequisites Setup
 
 ### Step 1: Verify AWS CLI Installation
+
 ```powershell
 # Check AWS CLI version
 aws --version
@@ -42,6 +47,7 @@ aws --version
 Expected output: `aws-cli/2.x.x Python/3.x.x Windows/10`
 
 ### Step 2: Configure AWS Credentials
+
 ```powershell
 # Configure AWS CLI with your credentials
 aws configure
@@ -54,6 +60,7 @@ aws configure
 ```
 
 ### Step 3: Verify Terraform Installation
+
 ```powershell
 # Check Terraform version
 terraform version
@@ -66,6 +73,7 @@ Expected output: `Terraform v1.x.x`
 ### Step 4: Create SSH Key Pairs
 
 **For US-EAST-1:**
+
 ```powershell
 # Create key pair in us-east-1
 aws ec2 create-key-pair `
@@ -79,6 +87,7 @@ aws ec2 describe-key-pairs --region us-east-1 --key-names vpc-peering-demo-east
 ```
 
 **For US-WEST-2:**
+
 ```powershell
 # Create key pair in us-west-2
 aws ec2 create-key-pair `
@@ -94,6 +103,7 @@ aws ec2 describe-key-pairs --region us-west-2 --key-names vpc-peering-demo-west
 ### Step 4.1: Secure Your PEM Key Files (CRITICAL!)
 
 **⚠️ IMPORTANT:** PEM files must have restricted permissions or SSH will reject them with errors like:
+
 - `WARNING: UNPROTECTED PRIVATE KEY FILE!`
 - `Permissions 0644 are too open`
 - `Load key "file.pem": invalid format`
@@ -101,12 +111,14 @@ aws ec2 describe-key-pairs --region us-west-2 --key-names vpc-peering-demo-west
 #### **For Windows Users (PowerShell):**
 
 **Why `chmod 400` doesn't work on Windows:**
+
 - `chmod` is a Linux/Unix command that only works in WSL/Git Bash
 - Windows uses ACLs (Access Control Lists), not Unix permissions
 - Even if you run `chmod 400` in Git Bash, **Windows SSH still checks Windows NTFS permissions**
 - You MUST use `icacls` to properly secure PEM files on Windows
 
 **Secure the East PEM file:**
+
 ```powershell
 # Remove all inherited permissions (critical step!)
 icacls vpc-peering-demo-east.pem /inheritance:r
@@ -119,6 +131,7 @@ icacls vpc-peering-demo-east.pem
 ```
 
 **Secure the West PEM file:**
+
 ```powershell
 # Remove all inherited permissions
 icacls vpc-peering-demo-west.pem /inheritance:r
@@ -131,6 +144,7 @@ icacls vpc-peering-demo-west.pem
 ```
 
 **Expected output after verification:**
+
 ```
 vpc-peering-demo-east.pem YourUsername:(R)
 Successfully processed 1 files; Failed processing 0 files
@@ -139,11 +153,13 @@ Successfully processed 1 files; Failed processing 0 files
 #### **For Linux/Ubuntu/Mac Users (Bash/Terminal):**
 
 **Why strict permissions are required:**
+
 - SSH refuses to use keys that other users can read
 - This prevents unauthorized access to your private keys
 - `chmod 400` = read-only for owner, no access for anyone else
 
 **Secure both PEM files:**
+
 ```bash
 # Set read-only permissions for owner only
 chmod 400 vpc-peering-demo-east.pem
@@ -154,6 +170,7 @@ ls -la vpc-peering-demo-*.pem
 ```
 
 **Expected output:**
+
 ```
 -r-------- 1 username username 1704 Nov 10 21:46 vpc-peering-demo-east.pem
 -r-------- 1 username username 1704 Nov 10 21:46 vpc-peering-demo-west.pem
@@ -161,18 +178,19 @@ ls -la vpc-peering-demo-*.pem
 
 #### **Common SSH Permission Errors and Solutions:**
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `UNPROTECTED PRIVATE KEY FILE!` | Permissions too open | Run `icacls` (Windows) or `chmod 400` (Linux) |
-| `Load key: invalid format` | Wrong file encoding (UTF-8 with BOM) | Recreate with `-Encoding ASCII` flag |
-| `Permission denied (publickey)` | Wrong key or wrong username | Verify key name matches Terraform config |
-| `Bad permissions` | Inherited Windows permissions | Run `icacls /inheritance:r` first |
+| Error                           | Cause                                | Solution                                      |
+| ------------------------------- | ------------------------------------ | --------------------------------------------- |
+| `UNPROTECTED PRIVATE KEY FILE!` | Permissions too open                 | Run `icacls` (Windows) or `chmod 400` (Linux) |
+| `Load key: invalid format`      | Wrong file encoding (UTF-8 with BOM) | Recreate with `-Encoding ASCII` flag          |
+| `Permission denied (publickey)` | Wrong key or wrong username          | Verify key name matches Terraform config      |
+| `Bad permissions`               | Inherited Windows permissions        | Run `icacls /inheritance:r` first             |
 
 #### **How to Restore Normal Permissions (For Easy Deletion):**
 
 After securing PEM files with restricted permissions, you may encounter "Access Denied" errors when trying to delete them. Here's how to restore normal permissions:
 
 **For Windows (PowerShell):**
+
 ```powershell
 # Grant full control to allow deletion of the PEM files
 icacls vpc-peering-demo-east.pem /grant:r "$($env:USERNAME):F"
@@ -184,6 +202,7 @@ Remove-Item vpc-peering-demo-west.pem -Force
 ```
 
 **For Linux/Ubuntu/Mac (Bash/Terminal):**
+
 ```bash
 # Restore write permissions to allow deletion
 chmod 600 vpc-peering-demo-east.pem
@@ -198,16 +217,19 @@ rm vpc-peering-demo-east.pem vpc-peering-demo-west.pem
 ```
 
 **Why this is needed:**
+
 - **Windows:** The `icacls /inheritance:r` command removes all permissions except read-only. To delete, you need write permissions (`F` = Full control).
 - **Linux:** The `chmod 400` command makes files read-only. To delete, you need write permissions on the parent directory (which you usually have), but setting `chmod 600` or `644` makes it clearer.
 
 **Quick cleanup command (Windows):**
+
 ```powershell
 # One-liner to restore permissions and delete both PEM files
 icacls *.pem /grant:r "$($env:USERNAME):F"; Remove-Item *.pem -Force
 ```
 
 **Quick cleanup command (Linux/Mac):**
+
 ```bash
 # One-liner to restore permissions and delete both PEM files
 chmod 644 *.pem && rm *.pem
@@ -220,11 +242,13 @@ chmod 644 *.pem && rm *.pem
 ## Infrastructure Deployment
 
 ### Step 5: Navigate to Project Directory
+
 ```powershell
 cd c:\repos\Terraform-Full-Course-Aws\lessons\day15
 ```
 
 ### Step 6: Create Configuration File
+
 ```powershell
 # Copy the example file
 Copy-Item terraform.tfvars.example terraform.tfvars
@@ -234,6 +258,7 @@ notepad terraform.tfvars
 ```
 
 **Update `terraform.tfvars` with your settings:**
+
 ```hcl
 primary_region   = "us-east-1"
 secondary_region = "us-west-2"
@@ -253,12 +278,14 @@ key_name = "vpc-peering-demo"
 Save and close the file.
 
 ### Step 7: Initialize Terraform
+
 ```powershell
 # Initialize Terraform - downloads providers and modules
 terraform init
 ```
 
 **Expected output:**
+
 ```
 Initializing the backend...
 Initializing provider plugins...
@@ -268,6 +295,7 @@ Terraform has been successfully initialized!
 ```
 
 ### Step 8: Format and Validate
+
 ```powershell
 # Format the code
 terraform fmt
@@ -279,12 +307,14 @@ terraform validate
 **Expected output:** `Success! The configuration is valid.`
 
 ### Step 9: Review the Execution Plan
+
 ```powershell
 # Create an execution plan
 terraform plan
 ```
 
 **Review the plan output carefully. You should see:**
+
 - 2 VPCs to be created
 - 2 Subnets
 - 2 Internet Gateways
@@ -300,6 +330,7 @@ terraform plan
 **Total: ~17-18 resources to be created**
 
 ### Step 10: Apply the Configuration
+
 ```powershell
 # Apply the configuration
 terraform apply
@@ -308,6 +339,7 @@ terraform apply
 Type `yes` when prompted.
 
 **This will take approximately 3-5 minutes.** The process includes:
+
 1. Creating VPCs in both regions (30 seconds)
 2. Setting up networking components (1 minute)
 3. Establishing VPC peering (30 seconds)
@@ -317,6 +349,7 @@ Type `yes` when prompted.
 **Monitor the output for any errors.**
 
 ### Step 11: Save Outputs
+
 ```powershell
 # Display all outputs
 terraform output
@@ -326,6 +359,7 @@ terraform output | Out-File -FilePath deployment-info.txt
 ```
 
 **Expected outputs:**
+
 ```
 primary_instance_private_ip = "10.0.1.xxx"
 primary_instance_public_ip = "x.x.x.x"
@@ -342,6 +376,7 @@ vpc_peering_status = "active"
 ## Verification Steps
 
 ### Step 12: Verify VPC Creation
+
 ```powershell
 # Check Primary VPC
 aws ec2 describe-vpcs --region us-east-1 --filters "Name=tag:Name,Values=Primary-VPC-us-east-1"
@@ -351,6 +386,7 @@ aws ec2 describe-vpcs --region us-west-2 --filters "Name=tag:Name,Values=Seconda
 ```
 
 ### Step 13: Verify VPC Peering Status
+
 ```powershell
 # Get peering connection ID
 $PEERING_ID = (terraform output -raw vpc_peering_connection_id)
@@ -360,11 +396,13 @@ aws ec2 describe-vpc-peering-connections --region us-east-1 --vpc-peering-connec
 ```
 
 **Verify that:**
+
 - Status = "active"
 - Requester VPC CIDR = 10.0.0.0/16
 - Accepter VPC CIDR = 10.1.0.0/16
 
 ### Step 14: Verify Route Tables
+
 ```powershell
 # Get Primary VPC ID
 $PRIMARY_VPC_ID = (terraform output -raw primary_vpc_id)
@@ -380,11 +418,13 @@ aws ec2 describe-route-tables --region us-west-2 --filters "Name=vpc-id,Values=$
 ```
 
 **Look for routes with:**
+
 - Destination: 10.1.0.0/16 (in Primary VPC route table)
 - Destination: 10.0.0.0/16 (in Secondary VPC route table)
 - Target: VPC Peering Connection ID
 
 ### Step 15: Verify EC2 Instances
+
 ```powershell
 # Check Primary instance
 aws ec2 describe-instances --region us-east-1 --filters "Name=tag:Name,Values=Primary-VPC-Instance"
@@ -394,11 +434,13 @@ aws ec2 describe-instances --region us-west-2 --filters "Name=tag:Name,Values=Se
 ```
 
 **Verify that:**
+
 - Instances are in "running" state
 - Security groups are attached
 - Public and private IPs are assigned
 
 ### Step 16: Verify Security Groups
+
 ```powershell
 # Get Primary Security Group
 $PRIMARY_INSTANCE_ID = (terraform output -raw primary_instance_id)
@@ -410,6 +452,7 @@ aws ec2 describe-security-groups --region us-west-2 --filters "Name=group-name,V
 ```
 
 **Verify that security groups allow:**
+
 - SSH (port 22) from 0.0.0.0/0
 - ICMP from peered VPC CIDR
 - All TCP from peered VPC CIDR
@@ -419,6 +462,7 @@ aws ec2 describe-security-groups --region us-west-2 --filters "Name=group-name,V
 ## Testing Connectivity
 
 ### Step 17: Get Instance Information
+
 ```powershell
 # Store important values
 $PRIMARY_PUBLIC_IP = (terraform output -raw primary_instance_public_ip)
@@ -439,19 +483,22 @@ Write-Host "Secondary Private IP: $SECONDARY_PRIVATE_IP"
 
 **Test Primary Instance:**
 
-*For Windows PowerShell:*
+_For Windows PowerShell:_
+
 ```powershell
 # SSH into Primary instance (us-east-1)
 ssh -i .\vpc-peering-demo-east.pem ubuntu@$PRIMARY_PUBLIC_IP
 ```
 
-*For Linux/Mac/Git Bash:*
+_For Linux/Mac/Git Bash:_
+
 ```bash
 # SSH into Primary instance (us-east-1)
 ssh -i vpc-peering-demo-east.pem ubuntu@$PRIMARY_PUBLIC_IP
 ```
 
-*For PuTTY Users (Windows):*
+_For PuTTY Users (Windows):_
+
 ```powershell
 # First, convert .pem to .ppk format using PuTTYgen:
 # 1. Open PuTTYgen
@@ -462,29 +509,32 @@ ssh -i vpc-peering-demo-east.pem ubuntu@$PRIMARY_PUBLIC_IP
 
 **Common SSH issues and solutions:**
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| `Permission denied (publickey)` | Wrong username or key | Use `ubuntu` not `ec2-user` for Ubuntu AMI |
-| `UNPROTECTED PRIVATE KEY FILE!` | Wrong file permissions | Run `icacls /inheritance:r` (Windows) or `chmod 400` (Linux) |
-| `Load key: invalid format` | UTF-8 BOM encoding | Recreate key with `-Encoding ASCII` |
-| `Connection timed out` | Security group or network | Check SG allows SSH from your IP (0.0.0.0/0) |
-| `Connection refused` | Instance still initializing | Wait 2-3 minutes after `terraform apply` |
+| Issue                           | Cause                       | Solution                                                     |
+| ------------------------------- | --------------------------- | ------------------------------------------------------------ |
+| `Permission denied (publickey)` | Wrong username or key       | Use `ubuntu` not `ec2-user` for Ubuntu AMI                   |
+| `UNPROTECTED PRIVATE KEY FILE!` | Wrong file permissions      | Run `icacls /inheritance:r` (Windows) or `chmod 400` (Linux) |
+| `Load key: invalid format`      | UTF-8 BOM encoding          | Recreate key with `-Encoding ASCII`                          |
+| `Connection timed out`          | Security group or network   | Check SG allows SSH from your IP (0.0.0.0/0)                 |
+| `Connection refused`            | Instance still initializing | Wait 2-3 minutes after `terraform apply`                     |
 
 **Test Secondary Instance:**
 
-*For Windows PowerShell:*
+_For Windows PowerShell:_
+
 ```powershell
 # SSH into Secondary instance (us-west-2)
 ssh -i .\vpc-peering-demo-west.pem ubuntu@$SECONDARY_PUBLIC_IP
 ```
 
-*For Linux/Mac/Git Bash:*
+_For Linux/Mac/Git Bash:_
+
 ```bash
 # SSH into Secondary instance (us-west-2)
 ssh -i vpc-peering-demo-west.pem ubuntu@$SECONDARY_PUBLIC_IP
 ```
 
 **Verify you're connected:**
+
 ```bash
 # Check OS version
 cat /etc/os-release
@@ -499,12 +549,14 @@ systemctl status apache2
 ### Step 19: Test VPC Peering - Ping Test
 
 **From Primary to Secondary:**
+
 ```bash
 # After SSH'ing into Primary instance
 ping -c 4 $SECONDARY_PRIVATE_IP
 ```
 
 **Expected output:**
+
 ```
 PING 10.1.1.xxx (10.1.1.xxx) 56(84) bytes of data.
 64 bytes from 10.1.1.xxx: icmp_seq=1 ttl=255 time=65.2 ms
@@ -514,6 +566,7 @@ PING 10.1.1.xxx (10.1.1.xxx) 56(84) bytes of data.
 ```
 
 **From Secondary to Primary:**
+
 ```bash
 # After SSH'ing into Secondary instance
 ping -c 4 $PRIMARY_PRIVATE_IP
@@ -524,24 +577,28 @@ ping -c 4 $PRIMARY_PRIVATE_IP
 ### Step 20: Test HTTP Connectivity
 
 **From Primary to Secondary:**
+
 ```bash
 # SSH into Primary instance, then:
 curl http://$SECONDARY_PRIVATE_IP
 ```
 
 **Expected output:**
+
 ```html
 <h1>Secondary VPC Instance - us-west-2</h1>
 <p>Private IP: 10.1.1.xxx</p>
 ```
 
 **From Secondary to Primary:**
+
 ```bash
 # SSH into Secondary instance, then:
 curl http://$PRIMARY_PRIVATE_IP
 ```
 
 **Expected output:**
+
 ```html
 <h1>Primary VPC Instance - us-east-1</h1>
 <p>Private IP: 10.0.1.xxx</p>
@@ -556,24 +613,28 @@ curl http://$PRIMARY_PRIVATE_IP
 ### Step 21: Network Performance Test
 
 **Install iperf3 on both instances:**
+
 ```bash
 # On both Primary and Secondary instances
 sudo yum install -y iperf3
 ```
 
 **On Secondary instance (server):**
+
 ```bash
 # Start iperf3 server
 iperf3 -s
 ```
 
 **On Primary instance (client):**
+
 ```bash
 # Run bandwidth test
 iperf3 -c $SECONDARY_PRIVATE_IP -t 10
 ```
 
 **Analyze results:**
+
 - Bandwidth: Typical inter-region bandwidth (varies by region pair)
 - Latency: Should be consistent with ping results
 - Jitter: Should be low (<10ms)
@@ -581,18 +642,21 @@ iperf3 -c $SECONDARY_PRIVATE_IP -t 10
 ### Step 22: Traceroute Test
 
 **From Primary to Secondary:**
+
 ```bash
 # Trace the route
 traceroute $SECONDARY_PRIVATE_IP
 ```
 
 **Expected behavior:**
+
 - Should show 1 hop (direct VPC peering connection)
 - No intermediate routers (proves traffic goes through peering, not internet)
 
 ### Step 23: DNS Resolution Test
 
 **Test private DNS resolution:**
+
 ```bash
 # On Primary instance
 nslookup $SECONDARY_PRIVATE_IP
@@ -604,6 +668,7 @@ dig -x $SECONDARY_PRIVATE_IP
 ### Step 24: Monitor VPC Flow Logs (Optional)
 
 **Enable Flow Logs (if not already):**
+
 ```powershell
 # Create CloudWatch log group
 aws logs create-log-group --log-group-name /aws/vpc/peering-demo --region us-east-1
@@ -622,6 +687,7 @@ aws ec2 create-flow-logs `
 ```
 
 **View Flow Logs:**
+
 ```powershell
 # After some traffic, check logs
 aws logs tail /aws/vpc/peering-demo --follow --region us-east-1
@@ -630,6 +696,7 @@ aws logs tail /aws/vpc/peering-demo --follow --region us-east-1
 ### Step 25: Test Security Group Rules
 
 **Verify SSH is blocked from Secondary VPC:**
+
 ```bash
 # From Secondary instance, try to SSH to Primary
 ssh ec2-user@$PRIMARY_PRIVATE_IP
@@ -637,6 +704,7 @@ ssh ec2-user@$PRIMARY_PRIVATE_IP
 ```
 
 **Verify ICMP is allowed:**
+
 ```bash
 # From Primary instance
 ping $SECONDARY_PRIVATE_IP
@@ -646,6 +714,7 @@ ping $SECONDARY_PRIVATE_IP
 ### Step 26: Cost Analysis
 
 **Check estimated costs:**
+
 ```powershell
 # Use AWS Cost Explorer or CLI
 aws ce get-cost-and-usage `
@@ -656,6 +725,7 @@ aws ce get-cost-and-usage `
 ```
 
 **Approximate costs (as of Nov 2025):**
+
 - 2x t2.micro instances: ~$0.0116/hour × 2 = ~$0.023/hour
 - Data transfer (inter-region): ~$0.02/GB
 - VPC Peering: No charge for the connection itself
@@ -668,6 +738,7 @@ aws ce get-cost-and-usage `
 ### Issue 1: Ping Fails Between VPCs
 
 **Diagnosis:**
+
 ```powershell
 # Check peering status
 aws ec2 describe-vpc-peering-connections --vpc-peering-connection-ids $PEERING_ID --region us-east-1
@@ -677,6 +748,7 @@ aws ec2 describe-route-tables --region us-east-1 --filters "Name=vpc-id,Values=$
 ```
 
 **Solutions:**
+
 1. Verify peering connection is "active"
 2. Check route tables have correct routes
 3. Verify security groups allow ICMP
@@ -685,12 +757,14 @@ aws ec2 describe-route-tables --region us-east-1 --filters "Name=vpc-id,Values=$
 ### Issue 2: SSH Connection Timeout
 
 **Diagnosis:**
+
 ```bash
 # Test connectivity
 Test-NetConnection -ComputerName $PRIMARY_PUBLIC_IP -Port 22
 ```
 
 **Solutions:**
+
 1. Verify instance is running: `aws ec2 describe-instances`
 2. Check security group allows SSH from your IP
 3. Verify key pair matches
@@ -699,6 +773,7 @@ Test-NetConnection -ComputerName $PRIMARY_PUBLIC_IP -Port 22
 ### Issue 3: HTTP Request Fails
 
 **Diagnosis:**
+
 ```bash
 # Check if Apache is running
 systemctl status httpd
@@ -708,6 +783,7 @@ netstat -tlnp | grep :80
 ```
 
 **Solutions:**
+
 1. Restart Apache: `sudo systemctl restart httpd`
 2. Check security group allows HTTP from peered VPC
 3. Verify instance has finished user_data script
@@ -718,12 +794,14 @@ netstat -tlnp | grep :80
 **Common errors and solutions:**
 
 **"InvalidKeyPair.NotFound":**
+
 ```powershell
 # Recreate the key pair
 aws ec2 create-key-pair --key-name vpc-peering-demo --region us-east-1
 ```
 
 **"VpcPeeringConnectionAlreadyExists":**
+
 ```powershell
 # Destroy existing resources
 terraform destroy
@@ -732,6 +810,7 @@ terraform apply
 ```
 
 **"UnauthorizedOperation":**
+
 - Check IAM permissions
 - Ensure AWS credentials are valid
 
@@ -789,6 +868,7 @@ Remove-Item vpc-peering-demo-west.pem -Force
 ```
 
 **For Linux/Mac users:**
+
 ```bash
 # If needed, restore permissions first:
 chmod 644 vpc-peering-demo-east.pem vpc-peering-demo-west.pem
@@ -842,15 +922,15 @@ Use this checklist to verify your demo build:
 
 ## Time Estimates
 
-| Phase | Duration |
-|-------|----------|
-| Prerequisites Setup | 10-15 minutes |
-| Infrastructure Deployment | 5-7 minutes |
-| Verification Steps | 10-15 minutes |
-| Testing Connectivity | 10-15 minutes |
-| Advanced Testing | 20-30 minutes |
-| Cleanup | 5 minutes |
-| **Total** | **60-87 minutes** |
+| Phase                     | Duration          |
+| ------------------------- | ----------------- |
+| Prerequisites Setup       | 10-15 minutes     |
+| Infrastructure Deployment | 5-7 minutes       |
+| Verification Steps        | 10-15 minutes     |
+| Testing Connectivity      | 10-15 minutes     |
+| Advanced Testing          | 20-30 minutes     |
+| Cleanup                   | 5 minutes         |
+| **Total**                 | **60-87 minutes** |
 
 ---
 
@@ -874,21 +954,25 @@ After completing this demo build, you have:
 To further enhance your learning:
 
 1. **Add more complexity:**
+
    - Add private subnets with NAT gateways
    - Implement multiple subnets per VPC
    - Add application load balancers
 
 2. **Implement monitoring:**
+
    - Set up CloudWatch alarms
    - Enable VPC Flow Logs
    - Create dashboards for metrics
 
 3. **Security enhancements:**
+
    - Implement Network ACLs
    - Use AWS Systems Manager instead of SSH
    - Add WAF for web applications
 
 4. **Cost optimization:**
+
    - Use spot instances
    - Implement auto-scaling
    - Schedule instance start/stop
@@ -903,11 +987,13 @@ To further enhance your learning:
 ## Additional Resources
 
 - **AWS Documentation:**
+
   - [VPC Peering Guide](https://docs.aws.amazon.com/vpc/latest/peering/)
   - [VPC Peering Scenarios](https://docs.aws.amazon.com/vpc/latest/peering/peering-scenarios.html)
   - [VPC Peering Limitations](https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-basics.html#vpc-peering-limitations)
 
 - **Terraform Documentation:**
+
   - [AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
   - [VPC Peering Connection](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_peering_connection)
 
