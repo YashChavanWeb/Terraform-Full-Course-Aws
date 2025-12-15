@@ -1,4 +1,3 @@
-# Simple backend-only image processor
 # Upload image to source S3 → Lambda triggers → Processes → Saves to destination S3
 
 # Random suffix for unique resource names
