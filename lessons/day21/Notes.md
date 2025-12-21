@@ -1,38 +1,36 @@
 # AWS Policy and Governance using Terraform
 
-Policy - Enforcing some rules that a organization should follow
-Eg: if a user has not enabled MFA then he cannot delete any resource in terraform
-Eg: if you upload an object in s3 bucket then it should be encrypted in rest / transit (HTTPS)
-Eg: every resource created should have the tags mentioned
-The action will be restricted if the developer fails to do so
-Policy blocks the request that is not approved
+**Policy** - Enforcing some rules that an organization should follow  
+Examples:
 
-Governance - storing all the activities - to know what is compliant
+- If a user has not enabled MFA, they cannot delete any resource
+- Objects uploaded to S3 must be encrypted at rest/transit (HTTPS)
+- Every resource created must have required tags
 
-## AWS CONFIGS
+The action will be restricted if the developer fails to comply. Policy blocks requests that are not approved.
 
-- helps us create config rules
-- similar to IAM policies
-- but will be applied after the action has been performed
-  Eg: it will allow you to create resource with no tags, but later it will log that as a non-compliant resource
+**Governance** - Storing all activities to track compliance
+
+## AWS Configs
+
+- Helps create config rules
+- Similar to IAM policies but applied after actions have been performed
+- Example: Allows resource creation without tags, but later logs it as non-compliant
 
 ## The Project
 
-Creating 6 different config rules
-These rules will monitor and check for compliance
-We will be creating a S3 bucket - store the audit logs
-this bucket will be encrypted, versioned and public access will be blocked on this bucket
+Creating 6 different config rules that monitor and check for compliance.  
+Creating an S3 bucket to store audit logs with encryption, versioning, and blocked public access.
 
-This project is for Audit and Compliance using Policies and Governance
-in which we will be preventing some actions using IAM policies, detecting as well, and store in S3 bucket
+This project implements Audit and Compliance using Policies and Governance, preventing actions via IAM policies, detecting violations, and storing logs in S3.
 
 ## Steps:
 
-### 1. Create a S3 bucket
+### 1. Create an S3 Bucket
 
-first we need a 6 chars random string generated for the suffix
+First, generate a 6-character random string for the suffix:
 
-```
+```hcl
 resource "random_string" "suffix" {
   length  = 6
   special = false
@@ -40,9 +38,9 @@ resource "random_string" "suffix" {
 }
 ```
 
-now we can create the S3 bucket resource
+Create the S3 bucket resource:
 
-```
+```hcl
 resource "aws_s3_bucket" "config_bucket" {
   bucket        = "${var.project_name}-config-bucket-${random_string.suffix.result}"
   force_destroy = true
@@ -56,10 +54,9 @@ resource "aws_s3_bucket" "config_bucket" {
 }
 ```
 
-after creating the bucket, we have to enable versioning for it
+Enable versioning on the Config bucket:
 
-```
-# Enable versioning on Config bucket
+```hcl
 resource "aws_s3_bucket_versioning" "config_bucket_versioning" {
   bucket = aws_s3_bucket.config_bucket.id
   versioning_configuration {
@@ -68,13 +65,9 @@ resource "aws_s3_bucket_versioning" "config_bucket_versioning" {
 }
 ```
 
-now we can enable the sse for the bucket
-we have multiple options for the rule, the most prominent is - using AES256
-or if we are using the s3 keys then we can also use the kms
-currently we are using AES256
+Enable SSE (Server-Side Encryption) for the bucket using AES256:
 
-```
-# Enable encryption on Config bucket
+```hcl
 resource "aws_s3_bucket_server_side_encryption_configuration" "config_bucket_encryption" {
   bucket = aws_s3_bucket.config_bucket.id
 
@@ -86,10 +79,9 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "config_bucket_enc
 }
 ```
 
-and then also we will block the bucket public access
+Block public access to the bucket:
 
-```
-# Block public access to Config bucket
+```hcl
 resource "aws_s3_bucket_public_access_block" "config_bucket_public_access" {
   bucket = aws_s3_bucket.config_bucket.id
 
@@ -100,10 +92,9 @@ resource "aws_s3_bucket_public_access_block" "config_bucket_public_access" {
 }
 ```
 
-Then we have to add different policies onto the bucket
+Add policies to the bucket:
 
-```
-# S3 Bucket Policy for Config
+```hcl
 resource "aws_s3_bucket_policy" "config_bucket_policy" {
   bucket = aws_s3_bucket.config_bucket.id
 
@@ -111,9 +102,6 @@ resource "aws_s3_bucket_policy" "config_bucket_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        # Allows AWS Config to get the ACL (Access Control List) of the bucket.
-        # This is required for AWS Config to verify that the bucket is configured correctly.
-
         Sid    = "AWSConfigBucketPermissionsCheck"
         Effect = "Allow"
         Principal = {
@@ -123,9 +111,6 @@ resource "aws_s3_bucket_policy" "config_bucket_policy" {
         Resource = aws_s3_bucket.config_bucket.arn
       },
       {
-       # Allows AWS Config to list the contents of the bucket.
-       # Ensures that AWS Config can verify the bucket’s existence.
-
         Sid    = "AWSConfigBucketExistenceCheck"
         Effect = "Allow"
         Principal = {
@@ -135,9 +120,6 @@ resource "aws_s3_bucket_policy" "config_bucket_policy" {
         Resource = aws_s3_bucket.config_bucket.arn
       },
       {
-        # Allows AWS Config to put objects into the bucket.
-        # Requires that objects uploaded by AWS Config must have the "bucket-owner-full-control" ACL.
-
         Sid    = "AWSConfigBucketPutObject"
         Effect = "Allow"
         Principal = {
@@ -147,15 +129,11 @@ resource "aws_s3_bucket_policy" "config_bucket_policy" {
         Resource = "${aws_s3_bucket.config_bucket.arn}/*"
         Condition = {
           StringEquals = {
-
-            # Ensures that objects uploaded by AWS Config must have the "bucket-owner-full-control" ACL.
             "s3:x-amz-acl" = "bucket-owner-full-control"
           }
         }
       },
       {
-        # Denies all actions on the bucket if the request is not made over a secure (HTTPS) connection.
-
         Sid       = "DenyInsecureTransport"
         Effect    = "Deny"
         Principal = "*"
@@ -173,19 +151,17 @@ resource "aws_s3_bucket_policy" "config_bucket_policy" {
     ]
   })
 
-  depends_on = [aws_s3_bucket_public_access_block.config_bucket_public_access] # To ensure that the bucket is created before the policy is applied
+  depends_on = [aws_s3_bucket_public_access_block.config_bucket_public_access]
 }
 ```
 
-That is it for the configuration of the S3 Bucket
-
 ### 2. IAM Policies
 
-In the IAM we are creating multiple policies, that are restricting the actions on the AWS resources
+Creating IAM policies that restrict actions on AWS resources.
 
 #### 1. Create a custom IAM policy that enforces MFA for deleting S3 objects
 
-```
+```hcl
 resource "aws_iam_policy" "mfa_delete_policy" {
   name        = "${var.project_name}-mfa-delete-policy"
   description = "Policy that requires MFA to delete S3 objects"
@@ -199,8 +175,6 @@ resource "aws_iam_policy" "mfa_delete_policy" {
         Action   = "s3:DeleteObject"
         Resource = "*"
         Condition = {
-
-          # everything is same, just here we have to put this condition rest all can be understood
           BoolIfExists = {
             "aws:MultiFactorAuthPresent" = "false"
           }
@@ -211,46 +185,65 @@ resource "aws_iam_policy" "mfa_delete_policy" {
 }
 ```
 
-second is enforcing encryption in transit for s3 bucket
-so in the policy we have to just change a few things:
+#### 2. Enforce encryption in transit for S3 buckets
 
-```
-        ...
-        Effect   = "Deny"
-        Action   = "s3:PutObject"
+```hcl
+resource "aws_iam_policy" "encryption_in_transit_policy" {
+  name        = "${var.project_name}-encryption-in-transit-policy"
+  description = "Policy that requires HTTPS for S3 object uploads"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "DenyInsecureTransport"
+        Effect = "Deny"
+        Action = "s3:PutObject"
+        Resource = "*"
         Condition = {
           Bool = {
             "aws:SecureTransport" = "false"
           }
         }
+      }
+    ]
+  })
+}
 ```
 
-third is require tagging for resource creation
+#### 3. Require tagging for resource creation
 
-```
-    # only on creating ec2 instances we are applying this policy
-        Action = [
-          "ec2:RunInstances"
-        ]
+```hcl
+resource "aws_iam_policy" "require_tagging_policy" {
+  name        = "${var.project_name}-require-tagging-policy"
+  description = "Policy that requires specific tags for EC2 instance creation"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "RequireEnvironmentTag"
+        Effect   = "Deny"
+        Action   = "ec2:RunInstances"
         Resource = "arn:aws:ec2:*:*:instance/*"
         Condition = {
-            # if the request tag is not like any of these then request will be blocked
           StringNotLike = {
             "aws:RequestTag/Environment" = ["dev", "staging", "prod"]
           }
         }
+      }
+    ]
+  })
+}
 ```
-
-and more
 
 #### 4. Create IAM Role for AWS Config service
 
-Refer this video for reference: https://www.youtube.com/watch?v=YPMn0Azq7v0
+Reference video: https://www.youtube.com/watch?v=YPMn0Azq7v0
 
-The assume_role_policy allows AWS Config (config.amazonaws.com) to "take on" the role and perform tasks like reading configurations or interacting with other AWS resources.
+The `assume_role_policy` allows AWS Config (`config.amazonaws.com`) to assume the role and perform tasks like reading configurations or interacting with other AWS resources.
 
-```
-# IAM Role for AWS Config Service
+```hcl
 resource "aws_iam_role" "config_role" {
   name = "${var.project_name}-config-role"
 
@@ -268,13 +261,11 @@ resource "aws_iam_role" "config_role" {
   })
 }
 
-# Attach managed policy to Config Role
 resource "aws_iam_role_policy_attachment" "config_policy_attach" {
   role       = aws_iam_role.config_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"
 }
 
-# Additional policy for Config to write to S3
 resource "aws_iam_role_policy" "config_s3_policy" {
   name = "${var.project_name}-config-s3-policy"
   role = aws_iam_role.config_role.id
@@ -283,7 +274,6 @@ resource "aws_iam_role_policy" "config_s3_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        # write the logs to the S3 Bucket
         Effect = "Allow"
         Action = [
           "s3:GetBucketVersioning",
@@ -302,12 +292,11 @@ resource "aws_iam_role_policy" "config_s3_policy" {
 
 ### 3. Config Setup
 
-now we need to setup the config in order to record the compliance and then log it into the S3 bucket
-steps:
-create a config recorder
+Set up AWS Config to record compliance and log to the S3 bucket.
 
-```
-# AWS Config Recorder
+Create a Config recorder:
+
+```hcl
 resource "aws_config_configuration_recorder" "main" {
   name     = "${var.project_name}-recorder"
   role_arn = aws_iam_role.config_role.arn
@@ -319,10 +308,9 @@ resource "aws_config_configuration_recorder" "main" {
 }
 ```
 
-then a delivery channel - Eg: s3 bucket
+Create a delivery channel (S3 bucket):
 
-```
-# AWS Config Delivery Channel
+```hcl
 resource "aws_config_delivery_channel" "main" {
   name           = "${var.project_name}-delivery-channel"
   s3_bucket_name = aws_s3_bucket.config_bucket.bucket
@@ -330,10 +318,9 @@ resource "aws_config_delivery_channel" "main" {
 }
 ```
 
-then start the config recorder
+Start the Config recorder:
 
-```
-# Start the Config Recorder
+```hcl
 resource "aws_config_configuration_recorder_status" "main" {
   name       = aws_config_configuration_recorder.main.name
   is_enabled = true
@@ -341,13 +328,11 @@ resource "aws_config_configuration_recorder_status" "main" {
 }
 ```
 
-and then finally we need to configure the config rules for compliance check
-it will not stop the resource from creation, but will log it in the s3 bucket if any issue is found (eg: a rule is not followed)
+Configure Config rules for compliance checks. These won't prevent resource creation but will log violations in the S3 bucket.
 
-using a predefined rule by aws
+Using a predefined AWS rule:
 
-```
-# Config Rule: Ensure S3 buckets do not allow public write
+```hcl
 resource "aws_config_config_rule" "s3_public_write_prohibited" {
   name = "s3-bucket-public-write-prohibited"
 
@@ -360,13 +345,15 @@ resource "aws_config_config_rule" "s3_public_write_prohibited" {
 }
 ```
 
-like this we can also create custom rules as well
-refer this documentation for more reference - https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config_use-managed-rules.html
+Custom rules can also be created.  
+Reference documentation: https://docs.aws.amazon.com/config/latest/developerguide/evaluate-config_use-managed-rules.html
 
-now we can run the 3 terraform command to apply the changes
+### 4. Apply Changes
 
-```
+Run the following Terraform commands to apply changes:
+
+```bash
 terraform init
-terraform plan --auto-approve
+terraform plan
 terraform apply --auto-approve
 ```
