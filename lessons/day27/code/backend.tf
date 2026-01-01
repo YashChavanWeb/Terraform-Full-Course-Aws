@@ -6,4 +6,6 @@ terraform {
     use_lockfile = true        # S3 Native Locking (No DynamoDB needed)
     encrypt      = true
   }
+
+  
 }
