@@ -1,4 +1,4 @@
-# Terraform Automation using CI/CD
+# Terraform Automation using CI/CD Pipeline
 
 - Use GitHub Actions to automate the provisioning and management of infrastructure using Terraform with the help of a pipeline.
 
@@ -93,3 +93,4 @@ chmod +x setup-backend.sh
 
 - Go to the executed workflow in the **Actions** tab.
 - Review the **Trivy** section to see all reported security vulnerabilities.
+
